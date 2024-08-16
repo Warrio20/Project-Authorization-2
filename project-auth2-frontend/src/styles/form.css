@@ -1,0 +1,42 @@
+form input, form button {
+    font-size: 25px;
+    transition: 0.25s;
+    margin: auto;
+    width: 90%;
+    display: block;
+    padding: 15px 5%;
+    font-family: "Nunito Sans", sans-serif;
+    font-weight: 300;
+    margin-bottom: 10px;
+    border: 0;
+    color: #222;
+    outline: none;
+}
+form input {
+    background: #fff;
+}
+form button { 
+    background: #d6d6d6;
+}
+form label{
+    display:flex;
+    justify-content: center;
+    margin-bottom: 13px;
+    font-size: 38px;
+    font-weight: 500;
+}
+form label a {
+    padding-left: 5px;
+    padding-right: 5px;
+    border-radius: 10px;
+    transition: 0.5s;
+    color: rgb(176, 194, 243);
+    text-decoration: none;
+    font-size: 20px;
+}
+form label a:hover{
+    text-decoration: underline;
+}
+form button:hover{
+    background-color: rgb(194, 194, 194);
+}
