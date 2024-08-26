@@ -1,6 +1,6 @@
 import axios from "axios";
 
-export const URL = "http://localhost:5000";
+export const URL = "http://localhost:5173/api";
 
 const $api = axios.create();
 

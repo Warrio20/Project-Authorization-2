@@ -12,7 +12,10 @@ export default class AuthService {
     static async logout(){
         return $api.post("/logout");
     }
-    static async resetPassword(token: string, newPassword: string){
-        return $api.post("/reset-password", {token, newPassword})
+    static async forgotPassword(email: string){
+        return $api.post("/forgot-password", {email})
+    }
+    static async resetPassword(uuid: string, newPassword: string){
+        return $api.post("/reset-password", {uuid, newPassword})
     }
 }

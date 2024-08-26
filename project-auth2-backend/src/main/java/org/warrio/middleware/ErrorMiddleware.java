@@ -5,9 +5,12 @@ import io.javalin.http.HttpResponseException;
 import io.javalin.http.HttpStatus;
 import io.javalin.validation.ValidationException;
 
+import java.util.Arrays;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class ErrorMiddleware {
+    public static Logger logger = Logger.getLogger("ErrorLogger");
     public static void HandleError(Exception error, Context ctx){
         if(error instanceof HttpResponseException){
             HttpResponseException e = (HttpResponseException) error;
@@ -19,5 +22,6 @@ public class ErrorMiddleware {
         } else {
             throw new HttpResponseException(HttpStatus.INTERNAL_SERVER_ERROR.getCode(), "Unexpected error");
         }
+        logger.info("Error response: " + error.getMessage() + " " + Arrays.toString(error.getStackTrace()));
     }
 }

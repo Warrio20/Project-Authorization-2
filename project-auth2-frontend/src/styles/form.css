@@ -40,3 +40,9 @@ form label a:hover{
 form button:hover{
     background-color: rgb(194, 194, 194);
 }
+.error{
+    color: lightcoral;
+}
+.success{
+    color:green;
+}

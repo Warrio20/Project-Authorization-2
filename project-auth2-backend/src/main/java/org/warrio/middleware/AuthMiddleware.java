@@ -8,7 +8,7 @@ import org.warrio.service.TokenService;
 
 
 public class AuthMiddleware {
-    public static UserDTO CheckAuth(Context ctx, boolean requireActivation){
+    public static UserDTO CheckAuth(Context ctx){
             String auth = ctx.header("Authorization");
             if(auth == null){
                 throw new UnauthorizedResponse();
@@ -18,9 +18,9 @@ public class AuthMiddleware {
                 throw new UnauthorizedResponse();
             };
             UserDTO decodedJWT = TokenService.validateAccessToken(accessToken);
-            if(decodedJWT == null || (requireActivation && !decodedJWT.isActivated)){
+            if(decodedJWT == null){
                 throw new UnauthorizedResponse();
             }
         return decodedJWT;
-    }
+    };
 }

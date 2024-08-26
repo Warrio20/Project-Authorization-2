@@ -2,14 +2,16 @@ package org.warrio.controllers;
 
 import io.javalin.http.Context;
 import io.javalin.http.Cookie;
+import io.javalin.http.HttpStatus;
 import org.warrio.App;
+import org.warrio.DTOs.Body.ForgotPasswordBody;
+import org.warrio.DTOs.Body.ResetPasswordBody;
 import org.warrio.middleware.AuthMiddleware;
-import org.warrio.DTOs.AccountResult;
-import org.warrio.DTOs.LoginBody;
-import org.warrio.DTOs.RegistrationBody;
+import org.warrio.DTOs.Results.AccountResult;
+import org.warrio.DTOs.Body.LoginBody;
+import org.warrio.DTOs.Body.RegistrationBody;
 import org.warrio.validation.Validation;
 import org.warrio.middleware.ErrorMiddleware;
-import org.warrio.DTOs.UserDTO;
 import org.warrio.service.UserService;
 
 import java.util.Date;
@@ -24,14 +26,11 @@ public class UserController {
             String password = bodyInfo.password;
             String username = bodyInfo.username;
 
-
-            AccountResult registrationResult = userService.registration(username,email,password);
-
-            setCookies(ctx, registrationResult);
-            ctx.json(registrationResult);
+            userService.registration(username,email,password);
+            ctx.status(HttpStatus.ACCEPTED);
         } catch (Exception e){
             ErrorMiddleware.HandleError(e, ctx);
-        };
+        }
 
     }
     public void login(Context ctx){
@@ -58,7 +57,7 @@ public class UserController {
     }
     public void getUsers(Context ctx){
         try {
-            UserDTO result = AuthMiddleware.CheckAuth(ctx, true);
+            AuthMiddleware.CheckAuth(ctx);
             ctx.json(userService.getAllUsers());
         } catch (Exception e){
             ErrorMiddleware.HandleError(e, ctx);
@@ -87,6 +86,24 @@ public class UserController {
             String activationLink = ctx.pathParam("link");
             userService.activate(activationLink);
             ctx.redirect(App.dotenv.get("CLIENT_URL"));
+        } catch (Exception e){
+            ErrorMiddleware.HandleError(e, ctx);
+        }
+    }
+    public void forgotPassword(Context ctx){
+        try {
+            ForgotPasswordBody body = Validation.ForgotPasswordValidation(ctx);
+            userService.forgotPassword(body.email);
+            ctx.status(HttpStatus.ACCEPTED);
+        } catch (Exception e){
+            ErrorMiddleware.HandleError(e, ctx);
+        }
+    }
+    public void resetPassword(Context ctx){
+        try {
+            ResetPasswordBody body = Validation.ResetPasswordValidation(ctx);
+            userService.resetPassword(body.newPassword, body.uuid);
+            ctx.status(HttpStatus.ACCEPTED);
         } catch (Exception e){
             ErrorMiddleware.HandleError(e, ctx);
         }

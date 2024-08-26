@@ -8,7 +8,7 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.bson.Document;
 import org.warrio.App;
-import org.warrio.DTOs.TokenSet;
+import org.warrio.DTOs.Results.TokenSet;
 import org.warrio.DTOs.UserDTO;
 
 import javax.crypto.SecretKey;
@@ -45,7 +45,7 @@ public class TokenService {
             String secretAccess = App.dotenv.get("JWT_ACCESS_SECRET");
             SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(secretAccess));
             Map userInfo = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("userInfo", Map.class);
-            return new UserDTO((String) userInfo.get("email"), (String) userInfo.get("username"), (boolean) userInfo.get("isActivated"));
+            return new UserDTO((String) userInfo.get("email"), (String) userInfo.get("username"));
         } catch (Exception e){
             return null;
         }
@@ -55,7 +55,7 @@ public class TokenService {
             String secretRefresh = App.dotenv.get("JWT_REFRESH_SECRET");
             SecretKey secretKey = Keys.hmacShaKeyFor(Decoders.BASE64URL.decode(secretRefresh));
             Map userInfo = Jwts.parser().verifyWith(secretKey).build().parseSignedClaims(token).getPayload().get("userInfo", Map.class);
-            return new UserDTO((String) userInfo.get("email"), (String) userInfo.get("username"), (boolean) userInfo.get("isActivated"));
+            return new UserDTO((String) userInfo.get("email"), (String) userInfo.get("username"));
         } catch (Exception e){
             return null;
         }

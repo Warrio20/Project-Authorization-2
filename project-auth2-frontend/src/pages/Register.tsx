@@ -1,5 +1,5 @@
 import { FC } from "react";
-import BlackContainer from "../components/basic/BlackContainer";
+import BlackContainer from "../components/bases/BlackContainer";
 import RegisterForm from "../components/formComponents/RegisterForm";
 
 const Register:FC = () => {

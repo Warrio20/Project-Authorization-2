@@ -9,26 +9,25 @@ import io.javalin.http.HttpResponseException;
 import io.javalin.http.UnauthorizedResponse;
 import org.bson.Document;
 import org.warrio.App;
-import org.warrio.DTOs.AccountResult;
-import org.warrio.DTOs.TokenSet;
+import org.warrio.DTOs.Results.AccountResult;
+import org.warrio.DTOs.Results.TokenSet;
 import org.warrio.DTOs.UserDTO;
 import org.warrio.DTOs.UserProfile;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.regex;
 
 public class UserService {
     private final MongoCollection<Document> userCollection;
     public UserService(){
         this.userCollection = App.db.getCollection("users");
     }
-    public AccountResult registration(String username, String email, String password) throws HttpResponseException {
+    public void registration(String username, String email, String password) throws HttpResponseException {
+        email = email.toLowerCase();
         Document emailUser = userCollection.find(eq("email", email)).first();
-        Document nameUser = userCollection.find(eq("username", username)).first();
+        Document nameUser = userCollection.find(regex("username", "^" + username + "$", "i")).first();
         if(emailUser != null){
             throw new BadRequestResponse("User with this email address already exists");
         } else if(nameUser != null){
@@ -43,19 +42,17 @@ public class UserService {
         user.append("activationLink", activationLink.toString());
         user.append("isActivated", false);
         userCollection.insertOne(user);
-        MailService mailService = new MailService();
-        mailService.sendActivation(email, App.dotenv.get("API_URL") + "/api/activate/" + activationLink);
+        MailService.sendActivation(email, App.dotenv.get("API_URL") + "/api/activate/" + activationLink);
         UserDTO userDTO = new UserDTO(user);
         TokenSet tokenSet = TokenService.generateToken(userDTO);
         TokenService.saveToken(userDTO.username, tokenSet.refreshToken);
-        return new AccountResult(tokenSet.accessToken, tokenSet.refreshToken, userDTO);
-    };
+    }
     public void activate(String activationLink) {
         if(userCollection.find(eq("activationLink", activationLink)).first() == null){
             throw new BadRequestResponse("Incorrect link");
-        };
+        }
         userCollection.updateOne(eq("activationLink",activationLink), Updates.set("isActivated", true));
-    };
+    }
 
     public AccountResult login(String username, String password) {
         Document user = userCollection.find(eq("username", username)).first();
@@ -66,6 +63,9 @@ public class UserService {
         boolean result = BCrypt.verifyer().verify(password.toCharArray(), userPassword.toCharArray()).verified;
         if(!result){
             throw new BadRequestResponse("Incorrect username or password");
+        }
+        if(!user.getBoolean("isActivated")){
+            throw new UnauthorizedResponse("You didn't activate your account, please check your email to activate it");
         }
         UserDTO userDTO = new UserDTO(user);
         TokenSet tokenSet = TokenService.generateToken(userDTO);
@@ -85,6 +85,9 @@ public class UserService {
             throw new UnauthorizedResponse();
         }
         Document user = userCollection.find(eq("username", dbUser.getString("username"))).first();
+        if(!user.getBoolean("isActivated")){
+            throw  new UnauthorizedResponse();
+        }
         UserDTO userDTO = new UserDTO(user);
         TokenSet tokenSet = TokenService.generateToken(userDTO);
         TokenService.saveToken(userDTO.username,tokenSet.refreshToken);
@@ -93,30 +96,35 @@ public class UserService {
     public List<UserProfile> getAllUsers(){
         FindIterable<Document> users = userCollection.find();
         List<UserProfile> documents = new ArrayList<>();
-        users.forEach(document -> {
-            documents.add(new UserProfile(document.getString("username"), document.getBoolean("isActivated")));
-        });
+        users.forEach(document -> documents.add(new UserProfile(document.getString("username"), document.getBoolean("isActivated"))));
         return documents;
     }
-    public AccountResult changeUsername(String newUsername,String username){
-        Document account = userCollection.find(eq("username", username)).first();
-        if(account == null) throw new UnauthorizedResponse();
-        if(new Date().getTime() - account.getLong("usernameChangeDate") < (5*24*60*60*1000)) throw new BadRequestResponse("It hasn't been 5 days since the last username change");
-        account.put("username",newUsername);
-        return changeAccount(account, username);
+    public void forgotPassword(String email){
+        Document user = userCollection.find(eq("email", email)).first();
+        if(user == null){
+            throw new UnauthorizedResponse("There is no user with this email");
+        }
+        UUID uuidLink = UUID.randomUUID();
+        String link = App.dotenv.get("CLIENT_URL")+"/change-password?token=" + uuidLink;
+        userCollection.updateOne(user, Updates.set("changePassword", uuidLink.toString()));
+        MailService.sendPasswordReset(email,link);
+        new Timer().schedule(new TimerTask() {
+            @Override
+            public void run() {
+                userCollection.updateOne(eq("email", email), eq("changePassword", null));
+            }
+        }, 2*60*60*1000);
     }
-    public AccountResult changePassword(String password, String username){
-        Document account = userCollection.find(eq("username", username)).first();
-        if(account == null) throw new UnauthorizedResponse();
+    public void resetPassword(String password, String uuid){
+        Document account = userCollection.find(eq("changePassword", uuid)).first();
+        if(account == null) throw new UnauthorizedResponse("Your token is outdated or have been already used");
         String hashPassword = BCrypt.withDefaults().hashToString(11,password.toCharArray());
-        account.put("password", hashPassword);
-        return changeAccount(account,username);
-    }
-    public AccountResult changeAccount(Document newAccount, String username){
-        UserDTO userDTO = new UserDTO(newAccount);
-        TokenSet tokenSet = TokenService.generateToken(userDTO);
-        TokenService.saveToken(username,tokenSet.refreshToken);
-       userCollection.updateOne(eq("username",username), newAccount);
-       return new AccountResult(tokenSet.accessToken,tokenSet.refreshToken,userDTO);
+        userCollection.updateOne(
+                eq("_id", account.getObjectId("_id")),
+                Updates.combine(
+                    Updates.set("changePassword", null),
+                    Updates.set("password", hashPassword)
+                )
+        );
     }
 }
