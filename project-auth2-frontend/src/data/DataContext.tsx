@@ -1,7 +1,7 @@
 import { createContext, FC, ReactNode, useState } from "react";
 import { IUser } from "../interfaces/IUser";
 import AuthService from "../services/AuthService";
-import axios, { AxiosResponse } from "axios";
+import axios from "axios";
 import { AuthResponse } from "../interfaces/responses/AuthResponse";
 import { URL } from "../httpHandler";
 interface IDataContext {
@@ -13,8 +13,8 @@ interface IDataContext {
     login: (username: string, password: string) => void,
     refresh: () => void,
     logout: () => void,
-    forgotPassword: (email: string) => Promise<any>;
-    resetPassword: (uuid: string, newPassword: string) => Promise<any>
+    forgotPassword: (email: string) => void
+    resetPassword: (uuid: string, newPassword: string) => void
 }
 const DataContext = createContext<IDataContext | undefined>(undefined);
 const DataProvider: FC<{ children: ReactNode }> = ({ children }) => {
@@ -65,11 +65,25 @@ const DataProvider: FC<{ children: ReactNode }> = ({ children }) => {
             setLoading(false);
         }
     }
-    const forgotPassword = async (email: string): Promise<string | AxiosResponse> => {
-        return AuthService.forgotPassword(email);
+    const forgotPassword = async (email: string) => {
+        try {
+            setProcess(true);
+            await AuthService.forgotPassword(email);
+            setProcess(false);
+        } catch (e: any) {
+            setProcess(false);
+            throw e;
+        }
     }
-    const resetPassword = async (uuid: string, newPassword: string): Promise<string | AxiosResponse> => {
-        return await AuthService.resetPassword(uuid, newPassword);
+    const resetPassword = async (uuid: string, newPassword: string) => {
+        try {
+            setProcess(true);
+            await AuthService.resetPassword(uuid, newPassword);
+            setProcess(false);
+        } catch (e: any) {
+            setProcess(false);
+            throw e;
+        }
     }
     return (
         <DataContext.Provider value={{ user, isAuthorized, isLoading, isProcessing, login, logout, register, refresh, forgotPassword, resetPassword }}>
